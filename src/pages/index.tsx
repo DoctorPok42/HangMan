@@ -94,7 +94,7 @@ const Home = () => {
     <>
       <Head>
         <title>HangMan</title>
-        <meta name="description" content="Convert video to subtitle" />
+        <meta name="description" content="Play HangMan with your friends" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
