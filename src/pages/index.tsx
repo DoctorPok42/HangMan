@@ -3,92 +3,69 @@ import { Input, Letters } from '../../Components'
 import { useState, useEffect } from 'react'
 import { Alert } from '@mui/material'
 
-const Home = () => {
+const Home = (props: any) => {
   const [nbErrors, setNbErrors] = useState<number>(10)
-  const [word, setWord] = useState<string>('')
-  const [letters, setLetters] = useState<string[]>([])
+  const [word] = useState<string>(props.word)
+  const [letters] = useState<string[]>(props.word.split(''))
   const [error, setError] = useState<string>('')
-  const [state, setState] = useState<'win' | 'lose' | 'playing' | 'none' | 'end'>('none')
+  const [state, setState] = useState<'win' | 'lose' | 'playing' | 'none' | 'end'>('playing')
   const [usedLetters, setUsedLetters] = useState<string[]>([])
-  const [foundLetters, setFoundLetters] = useState<any>([
-    {
-      letter: '',
-      found: false
-    }
-  ])
+  const [foundLetters, setFoundLetters] = useState<any>(
+    props.word.split('').map((letter: any) => ({ letter, found: false }))
+  )
   const [tryLetter, setTryLetter] = useState<string>('')
 
-  useEffect(() => {
-    if (word !== '') return
-    fetch('/api/getRandomWord', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).then(res => res.json())
-      .then(data => {
-        setWord(data.word)
-        setLetters(data.word.split(''))
-        setFoundLetters(data.word.split('').map((letter: any) => ({ letter, found: false })))
-        setState('playing')
-      })
-      .catch(err => {
-        setError(err.message)
-      })
-    }, [])
+  const handleTryLetter = (letter: string) => {
+    setError('')
 
-    const handleTryLetter = (letter: string) => {
-      setError('')
-      if (state !== 'playing') return
+    if (state !== 'playing') return
 
-      const regex = /^[a-zA-Z]+$/;
-
-      if (letter === '' || letter === ' ' || !regex.test(letter)) {
-        setError('You must enter a letter')
-        return
-      }
-
-      if (usedLetters.includes(letter)) {
-        setError('You already tried this letter')
-        return
-      }
-
-
-      setUsedLetters([...usedLetters, letter])
-      if (letters.includes(letter.toLocaleLowerCase())) {
-        setFoundLetters(foundLetters.map((foundLetter: any) => {
-          if (foundLetter.letter === letter) {
-            return {
-              ...foundLetter,
-              found: true
-            }
-          } else {
-            return foundLetter
-          }
-        }))
-
-        if (foundLetters.every((foundLetter: any) => foundLetter.found)) {
-          setState('win')
-        }
-      } else {
-        setNbErrors(nbErrors - 1)
-        if (nbErrors - 1 <= 0) {
-          setState('lose')
-        }
-      }
+    const regex = /^[a-zA-Z]+$/;
+    if (letter === '' || letter === ' ' || !regex.test(letter)) {
+      setError('You must enter a letter')
+      return
     }
 
-    useEffect(() => {
-      if (foundLetters.length === [
-        {
-          letter: '',
-          found: false
+    if (usedLetters.includes(letter) || usedLetters.includes(letter.toLocaleLowerCase())) {
+      setError('You already tried this letter')
+      return
+    }
+
+    setUsedLetters([...usedLetters, letter])
+    if (letters.includes(letter.toLocaleLowerCase())) {
+      setFoundLetters(foundLetters.map((foundLetter: any) => {
+        if (foundLetter.letter === letter) {
+          return {
+            ...foundLetter,
+            found: true
+          }
+        } else {
+          return foundLetter
         }
-      ].length) return
+      }))
+
       if (foundLetters.every((foundLetter: any) => foundLetter.found)) {
         setState('win')
       }
-    }, [foundLetters])
+    } else {
+      setNbErrors(nbErrors - 1)
+      if (nbErrors - 1 <= 0) {
+        setState('lose')
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (foundLetters.length === [
+      {
+        letter: '',
+        found: false
+      }
+    ].length) return
+    if (foundLetters.every((foundLetter: any) => foundLetter.found)) {
+      setState('win')
+    }
+  }, [foundLetters])
 
   return (
     <>
@@ -131,3 +108,20 @@ const Home = () => {
 }
 
 export default Home
+
+export const getServerSideProps = async () => {
+  const res = await fetch('https://hangman.doctorpok.io/api/getRandomWord', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+
+  const data = await res.json()
+
+  return {
+    props: {
+      word: data.word
+    }
+  }
+}
